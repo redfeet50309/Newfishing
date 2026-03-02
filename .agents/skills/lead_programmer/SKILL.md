@@ -1,4 +1,4 @@
----
+﻿---
 description: 主程式 (Lead Programmer) 技能，負責系統架構設計、程式碼審查、技術選型與效能優化。
 ---
 # Lead Programmer Skill

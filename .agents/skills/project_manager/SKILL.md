@@ -1,4 +1,4 @@
----
+﻿---
 description: 專案經理 (Project Manager - PM) 技能，負責敏捷開發流程、Sprint 排程與追蹤看板管理。
 ---
 # Project Manager (PM) Skill

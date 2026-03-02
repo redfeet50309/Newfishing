@@ -336,7 +336,7 @@ startFishingBtn.addEventListener('click', (e) => {
     if (game.state === GAME_STATE.IDLE) {
         startFishingContainer.classList.add('hidden');
         game.setReeling(true);
-    } else if (game.state === GAME_STATE.RESULT && game.fishingResult !== 'success') {
+    } else if (game.state === GAME_STATE.RESULT && !game.resultMessage.includes('成功釣到')) {
         game.resetGameplay();
         startFishingContainer.classList.add('hidden');
         game.setReeling(true);
@@ -366,15 +366,24 @@ function handleInputDown() {
     if (isModalOpen) return;
 
     if (game.state === GAME_STATE.RESULT) {
-        game.resetGameplay();
+        if (!game.resultMessage.includes('成功釣到')) {
+            game.resetGameplay();
+            startFishingContainer.classList.add('hidden');
+            game.setReeling(true); // Initialize reeling phase (isReeling defaults to false)
+            game.setReeling(true); // Immediately register canvas touch as active reeling!
+        } else {
+            game.resetGameplay();
+        }
     } else if (game.state === GAME_STATE.REELING) {
-        game.isHolding = true;
+        game.setReeling(true); // <--- FIX: Correctly call setReeling
     }
 }
 
 function handleInputUp() {
     if (isModalOpen) return;
-    game.setReeling(false);
+    if (game.state === GAME_STATE.REELING) {
+        game.setReeling(false); // <--- FIX: Correctly call setReeling
+    }
 }
 
 // Mouse and Touch events
@@ -384,14 +393,22 @@ canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInputDo
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleInputUp(); }, { passive: false });
 
 // Game Loop
-function gameLoop() {
-    update();
+let lastTime = 0;
+function gameLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = timestamp - lastTime;
+    lastTime = timestamp;
+    
+    // Cap dt to prevent massive jumps if tab is inactive
+    const safeDt = Math.min(dt, 50); 
+
+    update(safeDt);
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-function update() {
-    game.update();
+function update(dt) {
+    game.update(dt);
     updateUIText();
 }
 
@@ -448,7 +465,7 @@ function updateUIText() {
             stateText.classList.remove('hidden');
             break;
         case GAME_STATE.RESULT:
-            if (game.fishingResult === 'success') {
+            if (game.resultMessage.includes('成功釣到')) {
                 stateText.innerText = "點擊畫面繼續";
                 stateText.style.color = "#fff";
                 startFishingContainer.classList.add('hidden');

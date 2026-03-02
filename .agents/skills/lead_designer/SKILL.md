@@ -1,4 +1,4 @@
----
+﻿---
 description: 主企劃 (Lead Designer) 技能，負責核心玩法設計、數值平衡、遊戲設計文件 (GDD) 維護。
 ---
 # Lead Designer Skill

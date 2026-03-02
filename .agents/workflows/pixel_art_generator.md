@@ -1,4 +1,4 @@
----
+﻿---
 description: 2D 像素美術 AI 繪圖精準 Prompt 生成器 (Pixel Art Prompt Generator)
 ---
 

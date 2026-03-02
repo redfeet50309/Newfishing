@@ -1,4 +1,4 @@
----
+﻿---
 description: 技術美術 (Technical Artist - TA) 技能，橋接程式與美術，負責效能優化與特效渲染。
 ---
 # Technical Artist (TA) Skill

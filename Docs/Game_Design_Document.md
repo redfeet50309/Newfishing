@@ -1,4 +1,4 @@
-# 《SP》專案遊戲設計文件 (Game Design Document)
+﻿# 《SP》專案遊戲設計文件 (Game Design Document)
 
 **維護者：主企劃 (Lead Designer)**
 **最新更新：Milestone 3 (多區域、船隻解鎖與 30 種魚譜)**

@@ -1,4 +1,4 @@
----
+﻿---
 description: 敘事企劃 (Narrative Designer) 技能，撰寫世界觀、對白、任務文本，維繫經營模擬的故事性。
 ---
 # Narrative Designer Skill

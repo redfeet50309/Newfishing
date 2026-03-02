@@ -1,4 +1,4 @@
-# Milestone 3 美術立繪與素材需求清單 (Art Requirements)
+﻿# Milestone 3 美術立繪與素材需求清單 (Art Requirements)
 
 **致：主美術 (Lead Artist) 與 技術美術 (TA)**
 **目標：Milestone 3 (五大區域、船隻系統與 30 種魚圖鑑)**

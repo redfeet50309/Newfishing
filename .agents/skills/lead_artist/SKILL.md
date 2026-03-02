@@ -1,4 +1,4 @@
----
+﻿---
 description: 主美術 (Lead Artist) 技能，負責視覺風格定義、美術資產管理、UI/UX 體驗審查。
 ---
 # Lead Artist Skill

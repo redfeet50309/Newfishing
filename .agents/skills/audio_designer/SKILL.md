@@ -1,4 +1,4 @@
----
+﻿---
 description: 音效設計師 (Audio Designer) 技能，負責 BGM 與 SFX 規劃、AI 音樂 Prompt 生成與氛圍營造。
 ---
 # Audio Designer Skill

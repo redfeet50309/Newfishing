@@ -1,4 +1,4 @@
----
+﻿---
 description: 跨平台 UI 佈局快速原型 (UI Wireframe & User Flow Planner)
 ---
 
@@ -33,7 +33,7 @@ description: 跨平台 UI 佈局快速原型 (UI Wireframe & User Flow Planner)
 └─ [主視窗 Panel] (置中對齊, 佔螢幕 70%)
     ├─ [視覺層級 1：Header] (視窗頂部)
     │   ├─ 標題文字：【鐵匠鋪 - 裝備升級】 (左上對齊)
-    │   └─ [X] 關閉按鈕 (右上對齊，觸控熱區需加大)
+    │   └─ [o] 關閉按鈕 (右上對齊，觸控熱區需加大)
     │
     ├─ [視覺層級 2：Content Left] (左側 40% 寬度)
     │   ├─ 目前裝備圖示 (大尺寸，置中)

@@ -1,4 +1,4 @@
----
+﻿---
 description: 行銷與發行專員 (Marketing Specialist) 技能，負責商店文案、預熱策略、社群推廣。
 ---
 # Marketing Specialist Skill

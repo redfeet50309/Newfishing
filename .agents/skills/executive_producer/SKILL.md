@@ -1,4 +1,4 @@
----
+﻿---
 description: 執行製作人 (Executive Producer) 技能，負責專案時程管理、任務拆解與追蹤、資源協調。
 ---
 # Executive Producer Skill
