@@ -18,6 +18,17 @@ bgImages[3].src = 'assets/images/bgs/bg_coral_cute_flat_1772375617723.png';
 bgImages[4].src = 'assets/images/bgs/bg_deep_ocean_cute_flat_1772375633891.png';
 bgImages[5].src = 'assets/images/bgs/bg_ruins_cute_flat_1772375650824.png';
 
+// --- Fish Assets Preload ---
+const fishImages = {};
+// Preload all 30 fishes assuming FISH_TYPES is available from FishData.js
+if (typeof FISH_TYPES !== 'undefined') {
+    FISH_TYPES.forEach(fish => {
+        const img = new Image();
+        img.src = `assets/images/fish/${fish.id}.png`;
+        fishImages[fish.id] = img;
+    });
+}
+
 // --- Shop Data ---
 const SHOP_ITEMS = [
     {
@@ -295,6 +306,7 @@ function initBestiary() {
                 const bColor = borderColors[fish.rarityWeight];
 
                 card.style.borderColor = bColor;
+                card.style.cursor = "pointer";
                 card.innerHTML = `
                     <div class="fish-color-box" style="background-color: ${fish.color}; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                         <img src="assets/images/fish/${fish.id}.png" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
@@ -302,6 +314,21 @@ function initBestiary() {
                     <div class="fish-name">${fish.name}</div>
                     <div class="fish-record">Max: ${data.maxWeight}kg<br>Count: ${data.count}</div>
                 `;
+
+                // Add click listener
+                card.onclick = (e) => {
+                    e.stopPropagation();
+                    const rarityLabels = ['普通 (Common)', '進階 (Uncommon)', '稀有 (Rare)', '變異 (Mutant)', '史詩 (Epic)', '傳說 (Legendary)'];
+                    document.getElementById('fish-detail-img').src = `assets/images/fish/${fish.id}.png`;
+                    document.getElementById('fish-detail-name').innerText = fish.name;
+                    document.getElementById('fish-detail-desc').innerText = fish.description;
+                    document.getElementById('fish-detail-rarity').innerText = rarityLabels[fish.rarityWeight];
+                    document.getElementById('fish-detail-price').innerText = fish.sellPrice;
+                    document.getElementById('fish-detail-count').innerText = data.count;
+                    document.getElementById('fish-detail-weight').innerText = data.maxWeight;
+                    document.getElementById('fish-detail-img-box').style.backgroundColor = fish.color;
+                    openModal(document.getElementById('fish-detail-modal'));
+                };
             } else {
                 card.className = "fish-card locked";
                 card.innerHTML = `
@@ -361,6 +388,11 @@ bestiaryBtn.addEventListener('click', (e) => {
 });
 closeBestiaryBtn.addEventListener('click', (e) => { e.stopPropagation(); closeModal(bestiaryModal); });
 
+const closeFishDetailBtn = document.getElementById('close-detail-btn');
+if (closeFishDetailBtn) {
+    closeFishDetailBtn.addEventListener('click', (e) => { e.stopPropagation(); closeModal(document.getElementById('fish-detail-modal')); });
+}
+
 // Input handling
 function handleInputDown() {
     if (isModalOpen) return;
@@ -398,9 +430,9 @@ function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     const dt = timestamp - lastTime;
     lastTime = timestamp;
-    
+
     // Cap dt to prevent massive jumps if tab is inactive
-    const safeDt = Math.min(dt, 50); 
+    const safeDt = Math.min(dt, 50);
 
     update(safeDt);
     draw();
@@ -477,6 +509,10 @@ function updateUIText() {
                 stateText.classList.add('hidden');
             }
             break;
+    }
+
+    if (goldDisplay) {
+        goldDisplay.innerText = `💰: ${game.gold}`;
     }
 }
 
@@ -559,6 +595,16 @@ function drawResult() {
     lines.forEach((line, index) => {
         ctx.fillText(line, canvas.width / 2, canvas.height / 2 - 20 + (index * 40));
     });
+
+    // If successfully caught, draw the fish image
+    if (game.resultMessage.includes('成功釣到') && game.currentFish) {
+        const fishImg = fishImages[game.currentFish.id];
+        if (fishImg && fishImg.complete && fishImg.naturalWidth !== 0) {
+            // Draw image above the text
+            const imgSize = 128;
+            ctx.drawImage(fishImg, (canvas.width / 2) - (imgSize / 2), (canvas.height / 2) - 180, imgSize, imgSize);
+        }
+    }
 }
 
 // Start Game Loop

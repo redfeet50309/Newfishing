@@ -132,12 +132,12 @@ class FishingSystem {
 
     // Player Reeling (+ Tension)
     if (this.isReeling) {
-      tensionDelta += 0.4 * timeScale; 
+      tensionDelta += 0.4 * timeScale;
     } else {
       // Natural line slack / water resistance (- Tension)
       // Region 3 Buff: Slack Penalty Reduction (5% per fish, up to 30%)
       const r3Buff = this.getRegionBuffCount(3) * 0.05;
-      const slackValue = 0.8 * (1 - r3Buff); 
+      const slackValue = 0.8 * (1 - r3Buff);
       tensionDelta -= slackValue * timeScale;
     }
 
@@ -170,11 +170,17 @@ class FishingSystem {
       this.currentFish.currentPull *= Math.pow(0.9, timeScale); // Decay resting pull back to 0
     }
 
-    // --- THE FIX FOR RUNAWAY TENSION ---
+    // --- DYNAMIC TENSION CAP ---
+    // Instead of a global 1.0 limit, scale the cap based on fish rarity to maintain end-game difficulty!
+    const rarityCaps = [1.0, 1.2, 1.5, 1.8, 2.2, 2.5]; // Common to Legendary
+    let baseCap = 1.0;
+    if (this.currentFish && this.currentFish.rarityWeight !== undefined) {
+      baseCap = rarityCaps[this.currentFish.rarityWeight] || 1.0;
+    }
+
     // Region 5 Buff: Hard Cap Limit Reduction (2% per fish, up to 12%)
-    // Base maxHardCap reduced from 2.5 to 1.0 (Lead Planner adjustment)
     const r5Buff = this.getRegionBuffCount(5) * 0.02;
-    const maxHardCap = 1.0 * (1 - r5Buff);
+    const maxHardCap = baseCap * (1 - r5Buff);
 
     let clampedPull = this.currentFish.currentPull;
     if (clampedPull > maxHardCap) clampedPull = maxHardCap;

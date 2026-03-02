@@ -53,12 +53,13 @@ canvas {
 
 #top-bar {
   width: 100%;
-  padding: 10px 20px;
+  padding: 15px 20px;
   background-color: rgba(22, 33, 62, 0.85);
-  /* Slightly darker and more opaque */
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
+  gap: 15px;
   box-sizing: border-box;
   pointer-events: auto;
   border-bottom: 2px solid #0f3460;
@@ -68,11 +69,13 @@ canvas {
 #top-buttons {
   display: flex;
   gap: 10px;
+  justify-content: center;
 }
 
 #player-stats {
   display: flex;
   gap: 20px;
+  justify-content: center;
   font-size: 16px;
   font-weight: bold;
   color: #fca311;
@@ -170,7 +173,8 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
-  pointer-events: auto; /* Block clicks from passing through */
+  pointer-events: auto;
+  /* Block clicks from passing through */
   z-index: 100;
 }
 
@@ -290,10 +294,12 @@ canvas {
 /* Bestiary Specific Styles */
 .bestiary-content {
   width: 750px;
-  height: 85vh; /* Fixed height to allow internal scrolling */
+  height: 85vh;
+  /* Fixed height to allow internal scrolling */
   display: flex;
   flex-direction: column;
-  position: relative; /* For absolute positioning of close button */
+  position: relative;
+  /* For absolute positioning of close button */
 }
 
 .bestiary-content h2 {
