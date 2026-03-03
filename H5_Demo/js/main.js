@@ -552,6 +552,10 @@ function updateUIText() {
 }
 
 function drawReelingUI() {
+    // 加上全域陰影以確保所有 UI 在淺色天空上都能看清楚
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+
     // Draw Tension Bar
     const barWidth = 40;
     const barHeight = 400;
@@ -563,28 +567,28 @@ function drawReelingUI() {
     ctx.fillRect(x, y, barWidth, barHeight);
 
     // Safe Zone
-    // In Canvas, Y=0 is the top. 
-    // Bar height is 400. y is the starting Y (100).
-    // SafeZoneMax (e.g., 70) means it's 70% UP from the bottom.
-    // So the top of the safe zone is at 100% - 70% = 30% from the top of the bar.
     const safeZoneStartY = y + barHeight - (game.currentRod.safeZoneMax / 100) * barHeight;
     const safeZoneHeight = ((game.currentRod.safeZoneMax - game.currentRod.safeZoneMin) / 100) * barHeight;
 
-    // Draw the green background box
+    // 關閉陰影畫這個半透明色塊，避免髒亂
+    ctx.shadowBlur = 0;
     ctx.fillStyle = 'rgba(0, 255, 204, 0.4)';
     ctx.fillRect(x, safeZoneStartY, barWidth, safeZoneHeight);
+    ctx.shadowBlur = 4; // 恢復陰影
 
-    // Tension Indicator
+    // Tension Indicator - 寬度與張力條對齊，不錯位
     const indicatorY = y + barHeight - (game.tension / 100) * barHeight;
     ctx.fillStyle = (game.tension > game.currentRod.safeZoneMax || game.tension < game.currentRod.safeZoneMin) ? '#e94560' : '#00ffcc';
-    ctx.fillRect(x - 10, indicatorY - 5, barWidth + 20, 10);
+    // 讓指示條寬度與黑底對齊 (寬度 barWidth，起始 X 座標為 x)
+    ctx.fillRect(x, indicatorY - 5, barWidth, 10);
 
-    ctx.strokeStyle = '#16213e'; // 淺色背景用深色邊框
-    ctx.lineWidth = 3;
+    // Border: 原版的白色粗邊框（立體感來源）
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 4;
     ctx.strokeRect(x, y, barWidth, barHeight);
 
     // Labels
-    ctx.fillStyle = '#16213e'; // 深色字
+    ctx.fillStyle = '#fff';
     ctx.font = 'bold 18px Courier New';
     ctx.textAlign = 'center';
     ctx.fillText('張力', x + 20, y - 10);
@@ -601,7 +605,7 @@ function drawReelingUI() {
     ];
     const hintText = mysteryHints[fish.rarityWeight] || '水底有動靜...';
 
-    ctx.fillStyle = '#16213e'; // 深色字體避免被淺色天空吃掉
+    ctx.fillStyle = '#fff'; // 白字+陰影
     ctx.font = 'bold 20px Courier New';
     ctx.textAlign = 'left';
     ctx.fillText(`🎣 ${hintText}`, 30, 120);
@@ -614,25 +618,31 @@ function drawReelingUI() {
     ctx.fillRect(30, 140, sBarW, sBarH);
     ctx.fillStyle = '#556677'; // 固定深灰色，不使用 fish.color
     ctx.fillRect(30, 140, sFill, sBarH);
-    ctx.strokeStyle = '#16213e'; // 深色外框
+    
+    ctx.strokeStyle = '#fff'; // 白外框
     ctx.lineWidth = 2;
     ctx.strokeRect(30, 140, sBarW, sBarH);
     ctx.lineWidth = 1;
-    ctx.fillStyle = '#4a4e69'; // 深灰藍字體
+    
+    ctx.fillStyle = '#fff'; // 白字+陰影
     ctx.font = 'bold 16px Courier New';
     ctx.fillText('體力 (Stamina)', 30, 180);
 
     // Draw active reeling visual
     if (game.isReeling) {
-        ctx.fillStyle = '#e94560';
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 4;
+        ctx.fillStyle = '#e94560'; // 紅底字
         ctx.font = 'bold 30px Courier New';
         ctx.textAlign = 'center';
+        // 畫一個白底描邊增加動感與清晰度
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#fff';
         ctx.strokeText('🎣 用力捲線中!', canvas.width / 2, 250);
         ctx.fillText('🎣 用力捲線中!', canvas.width / 2, 250);
         ctx.lineWidth = 1;
     }
+
+    // 重置陰影設定，避免影響其他系統繪圖
+    ctx.shadowBlur = 0;
 
     // Feature 2: 張力危險紅框 Vignette 警示
     const inDanger = game.tension > game.currentRod.safeZoneMax || game.tension < game.currentRod.safeZoneMin;
