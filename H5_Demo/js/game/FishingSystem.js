@@ -19,6 +19,7 @@ class FishingSystem {
         this.gold = data.gold || 0;
         this.currentRegionId = data.currentRegionId || 1;
         this.unlockedBoats = data.unlockedBoats || ["boat_0"];
+        this.unlockedRods = data.unlockedRods || ["bamboo"];
         this.currentRod = data.currentRod || {
           id: "bamboo",
           name: "新手木竹竿",
@@ -28,6 +29,16 @@ class FishingSystem {
           maxRarity: 3,
         };
         this.bestiary = data.bestiary || {};
+
+        // --- Save Data Migration ---
+        // Ensure currentRod is always in unlockedRods (fixes saves from before this logic existed)
+        if (this.currentRod && this.currentRod.id && !this.unlockedRods.includes(this.currentRod.id)) {
+          this.unlockedRods.push(this.currentRod.id);
+        }
+        // Ensure bamboo is always unlocked
+        if (!this.unlockedRods.includes('bamboo')) {
+          this.unlockedRods.push('bamboo');
+        }
       } catch (e) {
         this.resetNewGame();
       }
@@ -44,6 +55,7 @@ class FishingSystem {
       gold: this.gold,
       currentRegionId: this.currentRegionId,
       unlockedBoats: this.unlockedBoats,
+      unlockedRods: this.unlockedRods,
       currentRod: this.currentRod,
       bestiary: this.bestiary,
     };
@@ -54,6 +66,7 @@ class FishingSystem {
     this.gold = 0;
     this.currentRegionId = 1; // Default to Tranquil Stream
     this.unlockedBoats = ["boat_0"]; // Default free boat
+    this.unlockedRods = ["bamboo"]; // Default free rod
     this.currentRod = {
       id: "bamboo",
       name: "新手木竹竿",
@@ -78,6 +91,9 @@ class FishingSystem {
 
     // Result messages
     this.resultMessage = "";
+    this.isNewRecord = false;
+    this.isNewFish = false;
+    this.resultTimer = 0;
   }
 
   getRegionBuffCount(regionId) {
@@ -117,6 +133,9 @@ class FishingSystem {
     switch (this.state) {
       case GAME_STATE.REELING:
         this.updateReeling(dt);
+        break;
+      case GAME_STATE.RESULT:
+        this.resultTimer += dt;
         break;
     }
   }
@@ -233,13 +252,15 @@ class FishingSystem {
         0.1 *
         (0.8 + Math.random() * 0.4)
       ).toFixed(2);
-      if (
-        parseFloat(caughtWeight) > this.bestiary[this.currentFish.id].maxWeight
-      ) {
-        this.bestiary[this.currentFish.id].maxWeight = parseFloat(caughtWeight);
+      
+      let isNewRecord = false;
+      // 方案 B: 首次釣獲 (isNew) 或者是體重超越歷史紀錄，都算破紀錄
+      if (isNew || parseFloat(caughtWeight) > this.bestiary[this.currentFish.id].maxWeight) {
+          isNewRecord = true;
+          this.bestiary[this.currentFish.id].maxWeight = parseFloat(caughtWeight);
       }
 
-      // Calculate Gold with incremental buffs (Region 1: +2% per unlocked fish in Region 1)
+      // Calculate Base Gold with incremental buffs (Region 1: +2% per unlocked fish in Region 1)
       let goldBonus = 1.0;
       const r1FishCount = Object.keys(this.bestiary).filter((id) =>
         id.startsWith("f_1_"),
@@ -247,17 +268,46 @@ class FishingSystem {
       goldBonus += r1FishCount * 0.02; // +2% per unique fish
       let finalGold = Math.floor(this.currentFish.sellPrice * goldBonus);
 
-      let extraMsg = "";
+      let totalGoldGain = finalGold;
+      let displayLines = [];
+
+      // 取出第一個 "( " 前的字串，例如將 "平穩鯉魚 (Common)" 轉為 "平穩鯉魚"
+      const pureFishName = this.currentFish.name.split(' (')[0];
+      displayLines.push(`✨ 成功釣到：${pureFishName}！`);
+      
+      let weightLine = `體重: ${caughtWeight} kg`;
+      if (isNewRecord && !isNew) { // 如果不是首次抓到但破紀錄，加個小 icon 在體重旁
+          weightLine += ` 🌟 破紀錄! 🌟`;
+      }
+      displayLines.push(weightLine);
+      displayLines.push(`💰 釣獲獎勵: ${finalGold} 金幣`);
+
+      // Tier 1: Discover new fish bonus
       if (isNew) {
         const firstCatchBonus = Math.floor(this.currentFish.sellPrice * 5); // 5x bonus
-        finalGold += firstCatchBonus;
-        extraMsg = `\n⭐ 圖鑑初次解鎖獎勵 (NEW): +${firstCatchBonus} 金幣! ⭐`;
+        totalGoldGain += firstCatchBonus;
+        displayLines.push(`⭐ 發現新魚種！額外獲得: ${firstCatchBonus} 金幣`);
+      } 
+      
+      // Tier 2: New Weight Record bonus
+      if (isNewRecord) {
+        const recordBonus = 10;
+        totalGoldGain += recordBonus;
+        // 為了畫面不要太多「🌟 破紀錄!」，如果是首次開圖鑑又破紀錄，我們提示文案稍微變化
+        const recordMsg = isNew ? `🌟 首隻體重創紀錄！額外獲得: ${recordBonus} 金幣` : `🌟 體重破紀錄！額外獲得: ${recordBonus} 金幣`;
+        displayLines.push(recordMsg);
       }
 
-      this.gold += finalGold;
+      this.gold += totalGoldGain;
+
       this.save(); // Save progress!
 
-      this.resultMessage = `✨ 成功釣到：${this.currentFish.name}！\n(${this.currentFish.description})${extraMsg}\n\n體重: ${caughtWeight} kg\n💰 總獲得 ${finalGold} 金幣`;
+      // Update state for main.js Rendering
+      this.isNewFish = isNew;
+      this.isNewRecord = isNewRecord;
+      this.resultTimer = 0;
+
+      this.resultMessage = displayLines.join('\n');
       this.isReeling = false;
     } else if (this.tension >= 100) {
       this.state = GAME_STATE.RESULT;

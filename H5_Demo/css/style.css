@@ -393,16 +393,28 @@ canvas {
   opacity: 0.8;
 }
 
+.fish-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
 .fish-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: bold;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fish-record {
-  font-size: 10px;
-  color: #aaa;
-  margin-top: 4px;
+  font-size: 13px;
+  color: #00ffcc;
+  font-weight: bold;
 }
 
 .fish-card.locked .fish-name {

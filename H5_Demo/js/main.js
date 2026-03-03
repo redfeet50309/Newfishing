@@ -116,16 +116,21 @@ function initShop() {
 
     SHOP_ITEMS.forEach(item => {
         const isEquipped = game.currentRod.id === item.id;
-        // Check if player has enough money. Don't block 'bamboo' since they own it basically.
-        const canBuy = game.gold >= item.price;
+        const isOwned = game.unlockedRods.includes(item.id); // 已購買但可能未裝備
 
         const itemDiv = document.createElement('div');
         itemDiv.className = `shop-item ${isEquipped ? 'equipped' : ''}`;
 
         let buttonHTML = '';
         if (isEquipped) {
+            // 目前裝備中
             buttonHTML = `<button class="buy-btn equipped-btn" disabled>已裝備</button>`;
+        } else if (isOwned) {
+            // 已購買，免費切換
+            buttonHTML = `<button class="buy-btn" onclick="equipRod('${item.id}')" style="background-color:#4a9eff;">切換裝備</button>`;
         } else {
+            // 尚未購買
+            const canBuy = game.gold >= item.price;
             buttonHTML = `<button class="buy-btn" onclick="buyRod('${item.id}')" ${!canBuy && item.price > 0 ? 'disabled' : ''}>
                 ${item.price > 0 ? '💰 ' + item.price : '免費裝備'}
             </button>`;
@@ -187,16 +192,31 @@ window.buyRod = function (rodId) {
     const rod = SHOP_ITEMS.find(r => r.id === rodId);
     if (!rod) return;
 
-    if (rod.price > 0 && game.gold >= rod.price) {
+    if (rod.price > 0 && game.gold >= rod.price && !game.unlockedRods.includes(rod.id)) {
+        // 購買全新釣竿：扣錄
         game.gold -= rod.price;
+        game.unlockedRods.push(rod.id); // ✅ 鍵入已解鎖清單
         game.currentRod = rod;
         game.save();
-        initShop(); // re-render
+        initShop();
     } else if (rod.price === 0) {
+        // 免費釣竿 (bamboo)—確保一定在已解鎖清單中
+        if (!game.unlockedRods.includes(rod.id)) {
+            game.unlockedRods.push(rod.id);
+        }
         game.currentRod = rod;
         game.save();
         initShop();
     }
+}
+
+// 切換裝備已解鎖的釣竿（免費）
+window.equipRod = function (rodId) {
+    const rod = SHOP_ITEMS.find(r => r.id === rodId);
+    if (!rod || !game.unlockedRods.includes(rod.id)) return;
+    game.currentRod = rod;
+    game.save();
+    initShop();
 }
 
 window.buyBoat = function (boatId) {
@@ -307,17 +327,21 @@ function initBestiary() {
             if (isUnlocked) {
                 card.className = "fish-card unlocked";
                 // Rarity border colors mapping based on weight (1: Common, 2: Uncommon, 3: Rare, 4: Epic, 5: Mutant)
-                const borderColors = ['', '#fff', '#0f0', '#00f', '#a020f0', '#f00'];
+                // Colors match GDD spec: Common=gray, Uncommon=green, Rare=blue, Epic=purple, Mutant=red
+                const borderColors = ['', '#aaaaaa', '#00e676', '#4488ff', '#ce93d8', '#ff5252'];
                 const bColor = borderColors[fish.rarityWeight];
 
                 card.style.borderColor = bColor;
                 card.style.cursor = "pointer";
+                const displayName = fish.name.split(' (')[0].split('(')[0].trim();
                 card.innerHTML = `
                     <div class="fish-color-box" style="background-color: ${fish.color}; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                         <img src="assets/images/fish/${fish.id}.png" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
                     </div>
-                    <div class="fish-name">${fish.name}</div>
-                    <div class="fish-record">Max: ${data.maxWeight}kg</div>
+                    <div class="fish-info">
+                        <div class="fish-name">${displayName}</div>
+                        <div class="fish-record">最大體重: ${data.maxWeight} kg</div>
+                    </div>
                 `;
 
                 // Add click listener
@@ -342,7 +366,9 @@ function initBestiary() {
                         <img src="assets/images/fish/${fish.id}.png" class="silhouette" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
                         <div style="position: absolute; color: white; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px #000;">?</div>
                     </div>
-                    <div class="fish-name">未知物種</div>
+                    <div class="fish-info">
+                        <div class="fish-name">未知物種</div>
+                    </div>
                 `;
             }
             gridContainer.appendChild(card);
@@ -553,42 +579,70 @@ function drawReelingUI() {
     ctx.fillStyle = (game.tension > game.currentRod.safeZoneMax || game.tension < game.currentRod.safeZoneMin) ? '#e94560' : '#00ffcc';
     ctx.fillRect(x - 10, indicatorY - 5, barWidth + 20, 10);
 
-    // Border
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#16213e'; // 淺色背景用深色邊框
+    ctx.lineWidth = 3;
     ctx.strokeRect(x, y, barWidth, barHeight);
 
     // Labels
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px Courier New';
+    ctx.fillStyle = '#16213e'; // 深色字
+    ctx.font = 'bold 18px Courier New';
     ctx.textAlign = 'center';
     ctx.fillText('張力', x + 20, y - 10);
 
-    // Draw Fish Stamina
+    // Draw Fish Stamina — Feature 1: 神秘感，隱藏魚名與顏色
     const fish = game.currentFish;
-    ctx.fillStyle = '#fff';
-    ctx.font = '20px Courier New';
-    ctx.textAlign = 'left';
-    ctx.fillText(`魚種：${fish.name}`, 30, 120);
+    const mysteryHints = [
+        '',                             // 0 (unused)
+        '水底有動靜...',                  // 1: Common
+        '線在震動...好像不輕！',            // 2: Uncommon
+        '一股穩定的拉力！！',               // 3: Rare
+        '一股巨大的力量傳來！！',            // 4: Epic
+        '⚠️ 未知的震顫！'               // 5: Mutant
+    ];
+    const hintText = mysteryHints[fish.rarityWeight] || '水底有動靜...';
 
-    // Fish Stamina Bar
+    ctx.fillStyle = '#16213e'; // 深色字體避免被淺色天空吃掉
+    ctx.font = 'bold 20px Courier New';
+    ctx.textAlign = 'left';
+    ctx.fillText(`🎣 ${hintText}`, 30, 120);
+
+    // Fish Stamina Bar — 固定灰色，不洩漏魚種顏色
     const sBarW = 300;
     const sBarH = 20;
     const sFill = (fish.staminaReal / fish.staminaMax) * sBarW;
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(30, 140, sBarW, sBarH);
-    ctx.fillStyle = fish.color;
+    ctx.fillStyle = '#556677'; // 固定深灰色，不使用 fish.color
     ctx.fillRect(30, 140, sFill, sBarH);
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = '#16213e'; // 深色外框
+    ctx.lineWidth = 2;
     ctx.strokeRect(30, 140, sBarW, sBarH);
-    ctx.fillText('魚體力 (Stamina)', 30, 180);
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#4a4e69'; // 深灰藍字體
+    ctx.font = 'bold 16px Courier New';
+    ctx.fillText('體力 (Stamina)', 30, 180);
 
     // Draw active reeling visual
     if (game.isReeling) {
         ctx.fillStyle = '#e94560';
-        ctx.font = '30px Courier New';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.font = 'bold 30px Courier New';
         ctx.textAlign = 'center';
+        ctx.strokeText('🎣 用力捲線中!', canvas.width / 2, 250);
         ctx.fillText('🎣 用力捲線中!', canvas.width / 2, 250);
+        ctx.lineWidth = 1;
+    }
+
+    // Feature 2: 張力危險紅框 Vignette 警示
+    const inDanger = game.tension > game.currentRod.safeZoneMax || game.tension < game.currentRod.safeZoneMin;
+    if (inDanger) {
+        const vignetteAlpha = 0.3 + 0.2 * Math.sin(Date.now() / 120); // 閃爍效果
+        const vignetteW = 20;
+        ctx.strokeStyle = `rgba(233, 69, 96, ${vignetteAlpha})`;
+        ctx.lineWidth = vignetteW * 2;
+        ctx.strokeRect(-vignetteW, -vignetteW, canvas.width + vignetteW * 2, canvas.height + vignetteW * 2);
+        ctx.lineWidth = 1; // 重置
     }
 }
 
@@ -596,24 +650,42 @@ function drawResult() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#00ffcc';
-    ctx.font = '24px Courier New';
-    ctx.textAlign = 'center';
-
+    const isCaught = game.resultMessage.includes('成功釣到') && game.currentFish;
     const lines = game.resultMessage.split('\n');
-    lines.forEach((line, index) => {
-        ctx.fillText(line, canvas.width / 2, canvas.height / 2 - 20 + (index * 40));
-    });
+    
+    // 計算文字區塊起始 Y 座標（讓整體排版往下移，避免被 Top Bar 遮蓋）
+    const startY = canvas.height / 2 + 30;
 
-    // If successfully caught, draw the fish image
-    if (game.resultMessage.includes('成功釣到') && game.currentFish) {
+    // If successfully caught, draw the fish image above text
+    if (isCaught) {
         const fishImg = fishImages[game.currentFish.id];
         if (fishImg && fishImg.complete && fishImg.naturalWidth !== 0) {
-            // Draw image above the text
-            const imgSize = 128;
-            ctx.drawImage(fishImg, (canvas.width / 2) - (imgSize / 2), (canvas.height / 2) - 180, imgSize, imgSize);
+            const imgSize = 180; // 放大圖片
+            const imgX = (canvas.width / 2) - (imgSize / 2);
+            const imgY = startY - imgSize - 20; // 將圖片畫在第一行文字的上方
+            ctx.drawImage(fishImg, imgX, imgY, imgSize, imgSize);
         }
     }
+
+    // Draw result text lines
+    ctx.textAlign = 'center';
+    lines.forEach((line, index) => {
+        // Feature 3: 破紀錄行使用金色大字
+        const isRecordLine = line.includes('🌟') && line.includes('破紀錄');
+        const isNewFishLine = line.includes('⭐') && line.includes('發現新魚種');
+
+        if (isRecordLine) {
+            ctx.fillStyle = '#ffd700'; // 金色
+            ctx.font = 'bold 24px Courier New';
+        } else if (isNewFishLine) {
+            ctx.fillStyle = '#ffeb3b'; // 亮黃
+            ctx.font = 'bold 24px Courier New';
+        } else {
+            ctx.fillStyle = '#00ffcc';
+            ctx.font = '22px Courier New';
+        }
+        ctx.fillText(line, canvas.width / 2, startY + (index * 38));
+    });
 }
 
 // Start Game Loop
