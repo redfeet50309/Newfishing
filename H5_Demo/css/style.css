@@ -186,11 +186,16 @@ canvas {
   background-color: #16213e;
   border: 2px solid #00ffcc;
   border-radius: 10px;
-  padding: 20px;
-  width: 600px;
-  max-width: 90%;
+  padding: 20px 20px 30px 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90%;
   color: #fff;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .shop-content h2 {
@@ -203,9 +208,12 @@ canvas {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  margin: 20px 0;
-  max-height: 400px;
+  margin: 15px 0;
   overflow-y: auto;
+  padding-right: 10px;
+  /* Make content stretch to fill available space but allow scroll */
+  flex-grow: 1;
+  min-height: 100px; /* Give it a minimum height instead of height: 0 */
 }
 
 .shop-item {
@@ -293,13 +301,10 @@ canvas {
 
 /* Bestiary Specific Styles */
 .bestiary-content {
-  width: 750px;
-  height: 85vh;
-  /* Fixed height to allow internal scrolling */
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  /* For absolute positioning of close button */
+  width: 95%;
+  max-width: 750px;
+  height: 90%; /* Takes 90% of the game modal height (approx 540px out of 600px) */
+  /* Remove display flex overrides as they are inherited from .shop-content now */
 }
 
 .bestiary-content h2 {
@@ -317,18 +322,10 @@ canvas {
 .bestiary-scroll-area {
   flex-grow: 1;
   overflow-y: auto;
-  padding-right: 10px;
+  padding-right: 15px;
+  padding-bottom: 20px;
   margin-top: 10px;
-}
-
-#bestiary-stats {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 15px;
-  text-align: left;
-  font-size: 14px;
-  color: #0fbc;
+  height: 0; /* Flex hack to respect parent container height limits */
 }
 
 .bestiary-region {
@@ -340,6 +337,20 @@ canvas {
   text-align: left;
 }
 
+.bestiary-region h3 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.region-buff {
+  font-size: 14px;
+  color: #0fbc;
+  font-weight: normal;
+}
+
 .bestiary-region.mastered {
   border-color: #ffd700;
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
@@ -347,8 +358,8 @@ canvas {
 
 .fish-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 columns */
+  gap: 15px; /* Increased gap slightly */
   margin-top: 10px;
 }
 
@@ -363,15 +374,23 @@ canvas {
 }
 
 .fish-color-box {
-  width: 40px;
-  height: 40px;
-  border-radius: 5px;
+  width: 70px; /* Increased from 40px */
+  height: 70px; /* Increased from 40px */
+  border-radius: 8px; /* Slightly larger radius */
   display: flex;
   justify-content: center;
   align-items: center;
   font-weight: bold;
-  font-size: 24px;
+  font-size: 32px; /* Increased from 24px */
   color: #fff;
+  position: relative; /* Crucial for absolute positioning inner text */
+  overflow: hidden; /* Ensure image stays inside border radius */
+}
+
+/* --- Silhouette Effect --- */
+.silhouette {
+  filter: brightness(0) drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+  opacity: 0.8;
 }
 
 .fish-name {

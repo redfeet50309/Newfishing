@@ -38,7 +38,7 @@ const SHOP_ITEMS = [
         safeZoneMin: 30,
         safeZoneMax: 70,
         damage: 0.1,
-        maxRarity: 1, // Can only catch Common
+        maxRarity: 3, // 可釣稀有 (Rare)
         price: 0
     },
     {
@@ -48,8 +48,8 @@ const SHOP_ITEMS = [
         safeZoneMin: 30,
         safeZoneMax: 70,
         damage: 0.8,
-        maxRarity: 3, // Can catch up to Rare
-        price: 500
+        maxRarity: 4, // 可釣史詩 (Epic)
+        price: 200
     },
     {
         id: 'poseidon',
@@ -58,17 +58,17 @@ const SHOP_ITEMS = [
         safeZoneMin: 30,
         safeZoneMax: 70,
         damage: 2.5,
-        maxRarity: 4, // Can catch Mutant
-        price: 5000
+        maxRarity: 5, // 可釣變異種 (Mutant)
+        price: 1500
     }
 ];
 
 const BOAT_ITEMS = [
     { id: 'boat_0', name: '步行 (岸邊)', desc: '抵達區域：恬靜小溪', region: 1, price: 0 },
-    { id: 'boat_1', name: '橡皮艇', desc: '解鎖區域：近海防波堤', region: 2, price: 1500 },
-    { id: 'boat_2', name: '雙引擎快艇', desc: '解鎖區域：迷霧珊瑚礁', region: 3, price: 8000 },
-    { id: 'boat_3', name: '遠洋探勘船', desc: '解鎖區域：深海斷層', region: 4, price: 30000 },
-    { id: 'boat_4', name: '魔法潛艦', desc: '解鎖區域：魔幻遺跡', region: 5, price: 100000 }
+    { id: 'boat_1', name: '橡皮艇', desc: '解鎖區域：近海防波堤', region: 2, price: 500 },
+    { id: 'boat_2', name: '雙引擎快艇', desc: '解鎖區域：迷霧珊瑚礁', region: 3, price: 2000 },
+    { id: 'boat_3', name: '遠洋探勘船', desc: '解鎖區域：深海斷層', region: 4, price: 5000 },
+    { id: 'boat_4', name: '魔法潛艦', desc: '解鎖區域：魔幻遺跡', region: 5, price: 10000 }
 ];
 
 // --- UI Elements ---
@@ -135,7 +135,7 @@ function initShop() {
             <div class="item-info">
                 <h3>${item.name}</h3>
                 <p>${item.desc}</p>
-                <div class="stats">削韌: ${item.damage} | 可釣最高稀有度: ${item.maxRarity === 1 ? '普通' : item.maxRarity === 3 ? '稀有' : '變異'}</div>
+                <div class="stats">削韌: ${item.damage} | 可釣最高稀有度: ${item.maxRarity === 3 ? '稀有 (Rare)' : item.maxRarity === 4 ? '史詩 (Epic)' : '變異 (Mutant)'}</div>
             </div>
             ${buttonHTML}
         `;
@@ -236,7 +236,7 @@ function initMap() {
         } else if (isUnlocked) {
             buttonHTML = `<button class="buy-btn" onclick="switchRegion(${region.id})">前往區域</button>`;
         } else {
-            buttonHTML = `<button class="buy-btn" disabled>需購買對應船隻</button>`;
+            buttonHTML = `<button class="buy-btn" disabled><img src="assets/images/ui/padlock.png" style="width:16px; height:16px; margin-right:5px; vertical-align:middle;">需購買對應船隻</button>`;
         }
 
         itemDiv.innerHTML = `
@@ -259,15 +259,15 @@ window.switchRegion = function (regionId) {
 function initBestiary() {
     bestiaryGrid.innerHTML = '';
 
-    // Calculate total buff states based on bestiary progress
+    // Calculate total buff states based on bestiary progress to place into headers
     const bStats = [
-        `💰 金幣收益: +${game.getRegionBuffCount(1) * 2}%`,
-        `💪 削韌倍率: +${game.getRegionBuffCount(2) * 2}%`,
-        `🧵 容錯提升: -${game.getRegionBuffCount(3) * 5}% (張力衰減)`,
-        `🍀 稀有咬鉤: +${game.getRegionBuffCount(4) * 3}%`,
-        `🛡️ 防彈機制: 爆衝上限 -${game.getRegionBuffCount(5) * 2}%`
+        '', // 0-based filler
+        `💰 全域金幣收益: +${game.getRegionBuffCount(1) * 2}%`,
+        `💪 釣竿基礎削韌力: +${game.getRegionBuffCount(2) * 2}%`,
+        `🧵 張力衰退減緩: -${game.getRegionBuffCount(3) * 5}%`,
+        `🍀 高階魚咬鉤率: +${game.getRegionBuffCount(4) * 3}%`,
+        `🛡️ 魚隻終極拉力上限降低: -${game.getRegionBuffCount(5) * 2}%`
     ];
-    bestiaryStats.innerHTML = `<strong>🏆 圖鑑累計實力強化：</strong><br>${bStats.join(" | ")}`;
 
     // Update Progress Bar
     const totalCollected = Object.keys(game.bestiary).length;
@@ -290,7 +290,12 @@ function initBestiary() {
 
         const regionBlock = document.createElement('div');
         regionBlock.className = `bestiary-region ${isMastered ? 'mastered' : ''}`;
-        regionBlock.innerHTML = `<h3>區域 ${r} (收集度: ${regionCount}/6) ${isMastered ? '👑 制霸!' : ''}</h3><div class="fish-grid"></div>`;
+        regionBlock.innerHTML = `
+            <h3>
+                <span>區域 ${r} (收集度: ${regionCount}/6) ${isMastered ? '👑 制霸!' : ''}</span>
+                <span class="region-buff">${bStats[r]}</span>
+            </h3>
+            <div class="fish-grid"></div>`;
 
         const gridContainer = regionBlock.querySelector('.fish-grid');
 
@@ -301,8 +306,8 @@ function initBestiary() {
 
             if (isUnlocked) {
                 card.className = "fish-card unlocked";
-                // Rarity border colors mapping based on weight
-                const borderColors = ['#fff', '#0f0', '#00f', '#f0f', '#ff0', '#f00'];
+                // Rarity border colors mapping based on weight (1: Common, 2: Uncommon, 3: Rare, 4: Epic, 5: Mutant)
+                const borderColors = ['', '#fff', '#0f0', '#00f', '#a020f0', '#f00'];
                 const bColor = borderColors[fish.rarityWeight];
 
                 card.style.borderColor = bColor;
@@ -312,13 +317,13 @@ function initBestiary() {
                         <img src="assets/images/fish/${fish.id}.png" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
                     </div>
                     <div class="fish-name">${fish.name}</div>
-                    <div class="fish-record">Max: ${data.maxWeight}kg<br>Count: ${data.count}</div>
+                    <div class="fish-record">Max: ${data.maxWeight}kg</div>
                 `;
 
                 // Add click listener
                 card.onclick = (e) => {
                     e.stopPropagation();
-                    const rarityLabels = ['普通 (Common)', '進階 (Uncommon)', '稀有 (Rare)', '變異 (Mutant)', '史詩 (Epic)', '傳說 (Legendary)'];
+                    const rarityLabels = ['', '普通 (Common)', '進階 (Uncommon)', '稀有 (Rare)', '史詩 (Epic)', '變異 (Mutant)'];
                     document.getElementById('fish-detail-img').src = `assets/images/fish/${fish.id}.png`;
                     document.getElementById('fish-detail-name').innerText = fish.name;
                     document.getElementById('fish-detail-desc').innerText = fish.description;
@@ -331,8 +336,12 @@ function initBestiary() {
                 };
             } else {
                 card.className = "fish-card locked";
+                card.style.borderColor = '#333';
                 card.innerHTML = `
-                    <div class="fish-color-box" style="background-color: #000;">?</div>
+                    <div class="fish-color-box" style="background-color: #111;">
+                        <img src="assets/images/fish/${fish.id}.png" class="silhouette" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.style.display='none'">
+                        <div style="position: absolute; color: white; font-size: 28px; font-weight: bold; text-shadow: 2px 2px 4px #000;">?</div>
+                    </div>
                     <div class="fish-name">未知物種</div>
                 `;
             }

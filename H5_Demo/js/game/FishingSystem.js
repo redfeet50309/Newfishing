@@ -25,7 +25,7 @@ class FishingSystem {
           safeZoneMin: 30,
           safeZoneMax: 70,
           damage: 0.1,
-          maxRarity: 1,
+          maxRarity: 3,
         };
         this.bestiary = data.bestiary || {};
       } catch (e) {
@@ -60,7 +60,7 @@ class FishingSystem {
       safeZoneMin: 30,
       safeZoneMax: 70,
       damage: 0.1,
-      maxRarity: 1,
+      maxRarity: 3,
     };
     this.bestiary = {};
   }
@@ -172,7 +172,7 @@ class FishingSystem {
 
     // --- DYNAMIC TENSION CAP ---
     // Instead of a global 1.0 limit, scale the cap based on fish rarity to maintain end-game difficulty!
-    const rarityCaps = [1.0, 1.2, 1.5, 1.8, 2.2, 2.5]; // Common to Legendary
+    const rarityCaps = [1.0, 1.2, 1.5, 1.8, 2.2, 2.5]; // Index 1-5: Common(1.2) to Mutant(2.5)
     let baseCap = 1.0;
     if (this.currentFish && this.currentFish.rarityWeight !== undefined) {
       baseCap = rarityCaps[this.currentFish.rarityWeight] || 1.0;
@@ -245,13 +245,19 @@ class FishingSystem {
         id.startsWith("f_1_"),
       ).length;
       goldBonus += r1FishCount * 0.02; // +2% per unique fish
-      const finalGold = Math.floor(this.currentFish.sellPrice * goldBonus);
+      let finalGold = Math.floor(this.currentFish.sellPrice * goldBonus);
+
+      let extraMsg = "";
+      if (isNew) {
+        const firstCatchBonus = Math.floor(this.currentFish.sellPrice * 5); // 5x bonus
+        finalGold += firstCatchBonus;
+        extraMsg = `\n⭐ 圖鑑初次解鎖獎勵 (NEW): +${firstCatchBonus} 金幣! ⭐`;
+      }
 
       this.gold += finalGold;
       this.save(); // Save progress!
 
-      let extraMsg = isNew ? "\n⭐ 圖鑑已解鎖 (NEW) ⭐" : "";
-      this.resultMessage = `✨ 成功釣到：${this.currentFish.name}！\n(${this.currentFish.description})${extraMsg}\n\n體重: ${caughtWeight} kg\n💰 獲得 ${finalGold} 金幣`;
+      this.resultMessage = `✨ 成功釣到：${this.currentFish.name}！\n(${this.currentFish.description})${extraMsg}\n\n體重: ${caughtWeight} kg\n💰 總獲得 ${finalGold} 金幣`;
       this.isReeling = false;
     } else if (this.tension >= 100) {
       this.state = GAME_STATE.RESULT;
