@@ -149,31 +149,56 @@ class FishingSystem {
     // 1. Calculate Base Tension Changes
     let tensionDelta = 0;
 
-    // Player Reeling (+ Tension)
+    // Player Reeling (+ Tension) / Slack (- Tension)
+    const REEL_POWER = 0.6;
+    const SLACK_POWER = 0.6; 
+
     if (this.isReeling) {
-      tensionDelta += 0.4 * timeScale;
+      tensionDelta += REEL_POWER * timeScale;
     } else {
       // Natural line slack / water resistance (- Tension)
       // Region 3 Buff: Slack Penalty Reduction (5% per fish, up to 30%)
       const r3Buff = this.getRegionBuffCount(3) * 0.05;
-      const slackValue = 0.8 * (1 - r3Buff);
+      const slackValue = SLACK_POWER * (1 - r3Buff);
       tensionDelta -= slackValue * timeScale;
     }
 
     // 2. Fish AI Behavior
-    // Every few frames, the fish decides what to do based on its specific behaviorInterval
-    if (this.frameCounter % this.currentFish.behaviorInterval === 0) {
+    if (this.currentFish.actionTimer === undefined) {
+      this.currentFish.actionTimer = 0;
+    }
+    
+    this.currentFish.actionTimer -= timeScale;
+
+    if (this.currentFish.actionTimer <= 0) {
+      this.currentFish.actionTimer = this.currentFish.behaviorInterval;
+      
       const action = Math.random();
-      // 40% chance to pull hard, 40% chance light pull, 20% chance to rest/swim towards player
-      if (action > 0.6) {
+      
+      // [新機制] 魚的拉力不再只有單向「拉遠(增加張力)」，也會有「游向玩家/下潛(減少張力)」
+      // 預設 60% 機率「往外拉 (1)」，40% 機率「游向玩家 (-1)」
+      let direction = Math.random() < 0.6 ? 1 : -1;
+
+      // [防呆&防爆機制] 防止連續同方向強拉導致瞬間破表，或者一直不動過關
+      if (this.tension > 75) {
+        // 張力過高時，魚有較高機率突然轉向游向玩家，造成瞬間鬆線
+        direction = Math.random() < 0.7 ? -1 : 1; 
+      } else if (this.tension < 25) {
+        // 張力過低時，魚有較高機率突然往外暴衝
+        direction = Math.random() < 0.7 ? 1 : -1;
+      }
+
+      // 20% chance to pull hard, 50% chance light pull, 30% chance to rest
+      if (action > 0.8) {
         // Hard pull gives a sudden burst of force
-        this.currentFish.currentPull = this.currentFish.pullStrength * 0.15;
-      } else if (action > 0.2) {
+        this.currentFish.currentPull = direction * this.currentFish.pullStrength * 0.15;
+        this.currentFish.actionTimer += 10; // 給予玩家微小反應緩衝時間
+      } else if (action > 0.3) {
         // Light pull
-        this.currentFish.currentPull = this.currentFish.pullStrength * 0.05;
+        this.currentFish.currentPull = direction * this.currentFish.pullStrength * 0.05;
       } else {
         // Resting
-        this.currentFish.currentPull = -1.0;
+        this.currentFish.currentPull = 0;
       }
     }
 
@@ -183,15 +208,11 @@ class FishingSystem {
     }
 
     // Apply frame-independent decay to the pull so it's a burst that fades
-    if (this.currentFish.currentPull > 0) {
-      this.currentFish.currentPull *= Math.pow(0.85, timeScale); // Decay (15% per 60FPS frame)
-    } else if (this.currentFish.currentPull < 0) {
-      this.currentFish.currentPull *= Math.pow(0.9, timeScale); // Decay resting pull back to 0
-    }
+    this.currentFish.currentPull *= Math.pow(0.85, timeScale);
 
     // --- DYNAMIC TENSION CAP ---
     // Instead of a global 1.0 limit, scale the cap based on fish rarity to maintain end-game difficulty!
-    const rarityCaps = [1.0, 1.2, 1.5, 1.8, 2.2, 2.5]; // Index 1-5: Common(1.2) to Mutant(2.5)
+    const rarityCaps = [1.0, 1.0, 1.2, 1.5, 1.8, 2.5]; // Index 1-5: Common(1.0) to Mutant(2.5)
     let baseCap = 1.0;
     if (this.currentFish && this.currentFish.rarityWeight !== undefined) {
       baseCap = rarityCaps[this.currentFish.rarityWeight] || 1.0;
@@ -201,8 +222,10 @@ class FishingSystem {
     const r5Buff = this.getRegionBuffCount(5) * 0.02;
     const maxHardCap = baseCap * (1 - r5Buff);
 
+    // Clamp both positive and negative bounds
     let clampedPull = this.currentFish.currentPull;
     if (clampedPull > maxHardCap) clampedPull = maxHardCap;
+    if (clampedPull < -maxHardCap) clampedPull = -maxHardCap;
 
     // Apply clamped fish pull to the tension delta, scaled by time
     tensionDelta += clampedPull * timeScale;
