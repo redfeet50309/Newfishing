@@ -468,6 +468,7 @@ canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInputDo
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleInputUp(); }, { passive: false });
 
 // Also stop audio when game state changes away from REELING
+let lastTime = 0;
 function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     const dt = timestamp - lastTime;
