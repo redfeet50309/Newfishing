@@ -2,6 +2,14 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const stateText = document.getElementById('state-text');
 
+// Handle Window Resize dynamically
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); // Initial call
+
 const game = new FishingSystem();
 
 // --- Background Assets ---
@@ -440,20 +448,20 @@ function handleInputDown() {
             startFishingContainer.classList.add('hidden');
             game.setReeling(true); // Initialize reeling phase (isReeling defaults to false)
             game.setReeling(true); // Immediately register canvas touch as active reeling!
-            if (sfxReel) sfxReel.play().catch(e=>console.log(e));
+            if (sfxReel) sfxReel.play().catch(e => console.log(e));
         } else {
             game.resetGameplay();
         }
     } else if (game.state === GAME_STATE.REELING) {
-        game.setReeling(true); 
-        if (sfxReel) sfxReel.play().catch(e=>console.log(e));
+        game.setReeling(true);
+        if (sfxReel) sfxReel.play().catch(e => console.log(e));
     }
 }
 
 function handleInputUp() {
     if (isModalOpen) return;
     if (game.state === GAME_STATE.REELING) {
-        game.setReeling(false); 
+        game.setReeling(false);
         if (sfxReel) {
             sfxReel.pause();
             sfxReel.currentTime = 0;
@@ -505,7 +513,8 @@ function draw() {
 
     // Draw water line overlay (semi-transparent for underwater feel)
     ctx.fillStyle = 'rgba(15, 52, 96, 0.4)';
-    ctx.fillRect(0, 300, canvas.width, canvas.height - 300);
+    const waterLineY = canvas.height * 0.5; // Change from fixed 300 to dynamic 50%
+    ctx.fillRect(0, waterLineY, canvas.width, canvas.height - waterLineY);
 
     // Update Top Bar UI
     // Handle Top Bar visibility
@@ -570,10 +579,11 @@ function drawReelingUI() {
     ctx.shadowBlur = 4;
 
     // Draw Tension Bar
-    const barWidth = 40;
-    const barHeight = 400;
-    const x = canvas.width - 80;
-    const y = 100;
+    // Responsive Dimensions
+    const barWidth = Math.min(40, canvas.width * 0.08); // 40 or 8% of width
+    const barHeight = canvas.height * 0.6; // 60% of viewport
+    const x = canvas.width - barWidth - 20; // 20px padding from right
+    const y = (canvas.height - barHeight) / 2; // Center vertically
 
     // Background
     ctx.fillStyle = '#1a1a2e';
@@ -618,39 +628,46 @@ function drawReelingUI() {
     ];
     const hintText = mysteryHints[fish.rarityWeight] || '水底有動靜...';
 
+    // UI margin setup
+    const leftMargin = 20;
+    const textBaseY = Math.max(80, canvas.height * 0.15); // Dynamic Y
+
     ctx.fillStyle = '#fff'; // 白字+陰影
     ctx.font = 'bold 20px Courier New';
     ctx.textAlign = 'left';
-    ctx.fillText(`🎣 ${hintText}`, 30, 120);
+    ctx.fillText(`🎣 ${hintText}`, leftMargin, textBaseY);
 
-    // Fish Stamina Bar — 固定灰色，不洩漏魚種顏色
-    const sBarW = 300;
+    // Fish Stamina Bar
+    const sBarW = Math.min(300, canvas.width - barWidth - leftMargin - 40); // Don't overlap with tension bar
     const sBarH = 20;
     const sFill = (fish.staminaReal / fish.staminaMax) * sBarW;
     ctx.fillStyle = '#1a1a2e';
-    ctx.fillRect(30, 140, sBarW, sBarH);
+    ctx.fillRect(leftMargin, textBaseY + 20, sBarW, sBarH);
     ctx.fillStyle = '#556677'; // 固定深灰色，不使用 fish.color
-    ctx.fillRect(30, 140, sFill, sBarH);
-    
+    ctx.fillRect(leftMargin, textBaseY + 20, sFill, sBarH);
+
     ctx.strokeStyle = '#fff'; // 白外框
     ctx.lineWidth = 2;
-    ctx.strokeRect(30, 140, sBarW, sBarH);
+    ctx.strokeRect(leftMargin, textBaseY + 20, sBarW, sBarH);
     ctx.lineWidth = 1;
-    
+
     ctx.fillStyle = '#fff'; // 白字+陰影
     ctx.font = 'bold 16px Courier New';
-    ctx.fillText('體力 (Stamina)', 30, 180);
+    ctx.fillText('體力 (Stamina)', leftMargin, textBaseY + 60);
 
     // Draw active reeling visual
     if (game.isReeling) {
         ctx.fillStyle = '#e94560'; // 紅底字
-        ctx.font = 'bold 30px Courier New';
+        // Responsive Font Size for Reeling Text
+        const fontSize = Math.min(30, Math.floor(canvas.width * 0.08));
+        ctx.font = `bold ${fontSize}px Courier New`;
         ctx.textAlign = 'center';
         // 畫一個白底描邊增加動感與清晰度
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#fff';
-        ctx.strokeText('🎣 用力捲線中!', canvas.width / 2, 250);
-        ctx.fillText('🎣 用力捲線中!', canvas.width / 2, 250);
+        const reelingY = canvas.height * 0.45; // Dynamic middle placement
+        ctx.strokeText('🎣 用力捲線中!', canvas.width / 2, reelingY);
+        ctx.fillText('🎣 用力捲線中!', canvas.width / 2, reelingY);
         ctx.lineWidth = 1;
     }
 
@@ -675,23 +692,29 @@ function drawResult() {
 
     const isCaught = game.resultMessage.includes('成功釣到') && game.currentFish;
     const lines = game.resultMessage.split('\n');
-    
+
     // 計算文字區塊起始 Y 座標（讓整體排版往下移，避免被 Top Bar 遮蓋）
-    const startY = canvas.height / 2 + 30;
+    const startY = canvas.height / 2 + 50; // Increased padding for mobile edge
 
     // If successfully caught, draw the fish image above text
     if (isCaught) {
         const fishImg = fishImages[game.currentFish.id];
         if (fishImg && fishImg.complete && fishImg.naturalWidth !== 0) {
-            const imgSize = 180; // 放大圖片
+            // Scale dynamically based on canvas
+            const imgSize = Math.min(180, canvas.width * 0.4);
             const imgX = (canvas.width / 2) - (imgSize / 2);
-            const imgY = startY - imgSize - 20; // 將圖片畫在第一行文字的上方
+            const imgY = startY - imgSize - 30; // 將圖片畫在第一行文字的上方
             ctx.drawImage(fishImg, imgX, imgY, imgSize, imgSize);
         }
     }
 
     // Draw result text lines
     ctx.textAlign = 'center';
+
+    // Dynamically adjust font size for results
+    const titleFont = Math.min(24, Math.floor(canvas.width * 0.05) + 6);
+    const subFont = Math.min(22, Math.floor(canvas.width * 0.045) + 6);
+
     lines.forEach((line, index) => {
         // Feature 3: 破紀錄行使用金色大字
         const isRecordLine = line.includes('🌟') && line.includes('破紀錄');
@@ -699,15 +722,16 @@ function drawResult() {
 
         if (isRecordLine) {
             ctx.fillStyle = '#ffd700'; // 金色
-            ctx.font = 'bold 24px Courier New';
+            ctx.font = `bold ${titleFont}px Courier New`;
         } else if (isNewFishLine) {
             ctx.fillStyle = '#ffeb3b'; // 亮黃
-            ctx.font = 'bold 24px Courier New';
+            ctx.font = `bold ${titleFont}px Courier New`;
         } else {
             ctx.fillStyle = '#00ffcc';
-            ctx.font = '22px Courier New';
+            ctx.font = `${subFont}px Courier New`;
         }
-        ctx.fillText(line, canvas.width / 2, startY + (index * 38));
+        // Increase spacing on smaller font sizes to keep readability
+        ctx.fillText(line, canvas.width / 2, startY + (index * (subFont + 16)));
     });
 }
 
