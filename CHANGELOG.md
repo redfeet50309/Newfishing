@@ -5,6 +5,7 @@
 - 魚類 AI 新增「游向玩家/下潛」的多向拉力機制 (Directional Pull)。
 - 張力引擎新增防呆與防爆震盪機制 (Anti-Frustration Oscillation)。
 - 針對魚類的「強拉 (Hard Pull)」增加了微型冷卻時間。
+- 實作收線物理回饋音效 (Reel Foley)，於長按觸控時播放，鬆開時暫停 (Milestone 4: Item 6)。
 
 ### Changed
 - 魚類 AI 發力區間機率更新為符合最新 GDD：20% 強拉、50% 輕拉、30% 休息/游向玩家。

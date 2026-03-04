@@ -429,6 +429,8 @@ if (closeFishDetailBtn) {
 }
 
 // Input handling
+const sfxReel = document.getElementById('sfx-reel');
+
 function handleInputDown() {
     if (isModalOpen) return;
 
@@ -438,18 +440,24 @@ function handleInputDown() {
             startFishingContainer.classList.add('hidden');
             game.setReeling(true); // Initialize reeling phase (isReeling defaults to false)
             game.setReeling(true); // Immediately register canvas touch as active reeling!
+            if (sfxReel) sfxReel.play().catch(e=>console.log(e));
         } else {
             game.resetGameplay();
         }
     } else if (game.state === GAME_STATE.REELING) {
-        game.setReeling(true); // <--- FIX: Correctly call setReeling
+        game.setReeling(true); 
+        if (sfxReel) sfxReel.play().catch(e=>console.log(e));
     }
 }
 
 function handleInputUp() {
     if (isModalOpen) return;
     if (game.state === GAME_STATE.REELING) {
-        game.setReeling(false); // <--- FIX: Correctly call setReeling
+        game.setReeling(false); 
+        if (sfxReel) {
+            sfxReel.pause();
+            sfxReel.currentTime = 0;
+        }
     }
 }
 
@@ -459,15 +467,19 @@ canvas.addEventListener('mouseup', handleInputUp);
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInputDown(); }, { passive: false });
 canvas.addEventListener('touchend', (e) => { e.preventDefault(); handleInputUp(); }, { passive: false });
 
-// Game Loop
-let lastTime = 0;
+// Also stop audio when game state changes away from REELING
 function gameLoop(timestamp) {
     if (!lastTime) lastTime = timestamp;
     const dt = timestamp - lastTime;
     lastTime = timestamp;
 
-    // Cap dt to prevent massive jumps if tab is inactive
     const safeDt = Math.min(dt, 50);
+
+    // Stop audio if fish runs away or is caught
+    if (game.state !== GAME_STATE.REELING && sfxReel && !sfxReel.paused) {
+        sfxReel.pause();
+        sfxReel.currentTime = 0;
+    }
 
     update(safeDt);
     draw();
