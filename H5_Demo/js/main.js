@@ -428,8 +428,44 @@ if (closeFishDetailBtn) {
     closeFishDetailBtn.addEventListener('click', (e) => { e.stopPropagation(); closeModal(document.getElementById('fish-detail-modal')); });
 }
 
-// Input handling
-const sfxReel = document.getElementById('sfx-reel');
+// Web Audio API for Reeling Sound (Guaranteed Playback without external assets)
+class ReelSFX {
+    constructor() {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.isPlaying = false;
+        this.timer = null;
+    }
+    
+    playClick() {
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(150 + Math.random() * 50, this.ctx.currentTime); // Low pitch click
+        
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05); // Sharp decay
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.05);
+    }
+
+    play() {
+        if (this.isPlaying) return;
+        this.isPlaying = true;
+        // Rapid clicks simulating a baitcaster/spinning reel
+        this.timer = setInterval(() => this.playClick(), 80);
+    }
+
+    pause() {
+        this.isPlaying = false;
+        clearInterval(this.timer);
+    }
+}
+const sfxReel = new ReelSFX();
 
 function handleInputDown() {
     if (isModalOpen) return;
@@ -440,13 +476,13 @@ function handleInputDown() {
             startFishingContainer.classList.add('hidden');
             game.setReeling(true); // Initialize reeling phase (isReeling defaults to false)
             game.setReeling(true); // Immediately register canvas touch as active reeling!
-            if (sfxReel) sfxReel.play().catch(e=>console.log(e));
+            if (sfxReel) sfxReel.play();
         } else {
             game.resetGameplay();
         }
     } else if (game.state === GAME_STATE.REELING) {
         game.setReeling(true); 
-        if (sfxReel) sfxReel.play().catch(e=>console.log(e));
+        if (sfxReel) sfxReel.play();
     }
 }
 
